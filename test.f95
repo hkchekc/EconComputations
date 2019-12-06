@@ -1,12 +1,12 @@
 program test
         implicit none
-        real, dimension(2, 2):: test_array
+        INTEGER, PARAMETER:: LEN = 10
+        real, dimension(LEN):: test_array
         real:: at = 20
-        do while (at < 40)
-        call dllm(at, 2.0)
-        print*, at
-        enddo
+        integer:: i  ! looping idx
+        test_array = (/(1.0/2.0**i, i = 1, 10)/)
         print*, test_array
+
 
 end program test
 
