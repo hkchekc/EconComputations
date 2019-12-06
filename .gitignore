@@ -1,0 +1,3 @@
+* # ignore all
+!*.f95 # except fortran
+!*.py # except fortran
