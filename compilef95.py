@@ -36,11 +36,18 @@ in_str = '{}'.format(program_name)
 run_fortran(in_str)
 # get the arrays stored in specific text file
 #TODO: MAKE IT MORE GENERIC, SAVE IT TO A SPECIFIC FOLDER AND LOOP THROUGH ALL TXT FILE IN FOLDER
+arr_li = ['VFUNC', 'PFUNC', 'STATDIST', 'AGRID', 'LORENZ']
 f_list = []
-for c in ['VALUEFUN', 'POLICYFUN', 'STATDIST', 'AGRID']:
+for c in arr_li:
     f = os.path.join(f_path, c)
     vf = np.transpose(np.genfromtxt(f))
     f_list.append(vf)
-print(f_list)
 # use mpl to plot graphs
-plt.plot(f_list[0], f_list[3])
+# LORENZ
+ozspace = np.linspace(0,1,700)
+plt.plot(f_list[4], ozspace, 'r')
+plt.plot(ozspace, ozspace, 'b')
+# STAT DIST
+plt.hist(f_list[2][0], color='b', range=(-2, 5))
+plt.hist(f_list[2][1], color='r', range=(-2, 5))
+plt.show()
