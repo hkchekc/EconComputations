@@ -36,7 +36,7 @@ f_path = '/Users/chek_choi/Downloads/fortran/'   # It is also bin path
 # run_fortran(in_str)
 # get the arrays stored in specific text file
 #TODO: MAKE IT MORE GENERIC, SAVE IT TO A SPECIFIC FOLDER AND LOOP THROUGH ALL TXT FILE IN FOLDER
-arr_li = ['VFUNC', 'PFUNC', 'STATDIST', 'AGRID', 'LORENZ']
+arr_li = ['VFUNC', 'PFUNC', 'STATDIST', 'AGRID', 'LORENZ','LAMBDA']
 f_dict = dict()
 for c in arr_li:
     f = os.path.join(f_path, c)
@@ -45,21 +45,20 @@ for c in arr_li:
     except OSError:
         vf = None
     f_dict[c] = vf
-# # use mpl to plot graphs
-# # LORENZ
-# ozspace = np.linspace(0,1,700)
-# plt.plot(f_list[4], ozspace, 'r')
-# plt.plot(ozspace, ozspace, 'b')
-# # Policy function
-#
-# # STAT DIST
-# plt.hist(f_list[2][0], color='b', range=(-2, 5))
-# plt.hist(f_list[2][1], color='r', range=(-2, 5))
-# plt.show()
 
-# ps2
+# ps2 - PLOT GRAPHS
 # df1 = [f_dict['AGRID'][int(i-1)] for i in f_dict['PFUNC'][0]]
 # df2 = [f_dict['AGRID'][int(i-1)] for i in f_dict['PFUNC'][1]]
 # plt.plot( f_dict['AGRID'],(df1-f_dict['AGRID']), 'r')
 # plt.plot( f_dict['AGRID'],(df2-f_dict['AGRID']), 'b')
 # plt.show()
+
+# PS4 - PLOT GRAPHS
+# LORENZ
+# print(f_dict['LORENZ'])
+# ozspace = np.linspace(0,1,100)
+# plt.plot(ozspace, f_dict['LORENZ'], 'r')
+# plt.plot(ozspace, ozspace, 'b')
+plt.plot( f_dict['AGRID'],f_dict['LAMBDA'][0], 'r')
+plt.plot( f_dict['AGRID'],f_dict['LAMBDA'][1], 'b')
+plt.show()
