@@ -27,7 +27,7 @@ PROGRAM PS4
     REAL(KIND=8):: ERROR_Q=100., ERROR_VFI, CRIT=1e-3
 
     DO WHILE (ERROR_Q> CRIT)
-        PRINT*, Q
+        PRINT*, "Q", Q
         Q = (HIGH_Q+LOW_Q)/2.
         ERROR_VFI=100.
         DO WHILE (ERROR_VFI> CRIT)
@@ -37,7 +37,6 @@ PROGRAM PS4
         CALL FIND_STAT_DIST()
         CALL COMPUTE_ERROR(ERROR_Q)
     ENDDO
-    PRINT*, A_GRID(((MAXLOC(STAT_DIST)-1)/2+1))
     OPEN(UNIT=3, FILE='/Users/chek_choi/Downloads/fortran/STATDIST', STATUS='REPLACE')
     DO SROWIDX=1, NA
         WRITE(UNIT=3,FMT=*) STAT_DIST([2*(SROWIDX-1) +1, 2*(SROWIDX-1) +2])
@@ -145,15 +144,20 @@ SUBROUTINE FIND_LORENZ()
     USE PS4RES
     IMPLICIT NONE
     INTEGER:: RIDX
-    REAL(KIND=8):: GINI=0.
+    REAL(KIND=8):: GINI
     REAL(KIND=8), DIMENSION(NA):: LORENZ, DEGREE
 
     DEGREE=(/(I*(1./FLOAT(NA)), I=1,NA)/)
 
+    GINI= 0.
     LORENZ(1) = STAT_DIST(1)
       DO RIDX = 2, NA
           LORENZ(RIDX)= LORENZ(RIDX-1) + STAT_DIST(RIDX*2-2+1) + STAT_DIST(RIDX*2-2+2)
           GINI = GINI + (DEGREE(RIDX)-LORENZ(RIDX))
+          IF ((DEGREE(RIDX)-LORENZ(RIDX))<0.) THEN
+            PRINT*, RIDX
+          ENDIF
       ENDDO
-    PRINT*, GINI/FLOAT(NA)
+    PRINT*, "degree", degree(na), degree(na-1)
+    PRINT*,"GINI", GINI/FLOAT(NA)
 END SUBROUTINE
