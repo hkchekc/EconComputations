@@ -36,15 +36,36 @@ f_path = '/Users/chek_choi/Downloads/fortran/'   # It is also bin path
 # run_fortran(in_str)
 # get the arrays stored in specific text file
 #TODO: MAKE IT MORE GENERIC, SAVE IT TO A SPECIFIC FOLDER AND LOOP THROUGH ALL TXT FILE IN FOLDER
-arr_li = ['VFUNC', 'PFUNC', 'STATDIST', 'AGRID', 'LORENZ','LAMBDA']
+arr_li = ['VFUNC', 'PFUNC', 'STATDIST', 'AGRID', 'LORENZ','LAMBDA', 'VFUND', 'PFUND', 'Q', 'CONSUM_EQ']
 f_dict = dict()
+ps_spec_suffix = ""
 for c in arr_li:
+    c = c+ps_spec_suffix
     f = os.path.join(f_path, c)
     try:
         vf = np.transpose(np.genfromtxt(f))
     except OSError:
         vf = None
     f_dict[c] = vf
+
+#PS4B - GRAPHS
+# required_graph = ['VFUNC', 'PFUNC',  'VFUND', 'PFUND']
+# fig, axs = plt.subplots(2, 2)
+# order = [axs[0,0],axs[0,1],axs[1,0],axs[1,1]]
+# print(axs)
+# def_x = f_dict['AGRID']
+# colors = ['r', 'b', 'g', 'pink', 'c']
+# for i, item in enumerate(required_graph):
+#     g = f_dict[item]
+#     current_ax = order[i]
+#     print(current_ax)
+#     current_ax.set_title(item)
+#     for di, dim in enumerate(g):
+#         current_ax.plot(def_x, f_dict[item][di], colors[di])
+# plt.show()
+plt.plot( f_dict['AGRID'],f_dict['CONSUM_EQ'][2], 'r')
+plt.plot( f_dict['AGRID'],f_dict['CONSUM_EQ'][3], 'b')
+plt.show()
 
 # ps2 - PLOT GRAPHS
 # df1 = [f_dict['AGRID'][int(i-1)] for i in f_dict['PFUNC'][0]]
@@ -59,6 +80,6 @@ for c in arr_li:
 # ozspace = np.linspace(0,1,100)
 # plt.plot(ozspace, f_dict['LORENZ'], 'r')
 # plt.plot(ozspace, ozspace, 'b')
-plt.plot( f_dict['AGRID'],f_dict['LAMBDA'][0], 'r')
-plt.plot( f_dict['AGRID'],f_dict['LAMBDA'][1], 'b')
-plt.show()
+# plt.plot( f_dict['AGRID'],f_dict['PFUNC'][0], 'r')
+# plt.plot( f_dict['AGRID'],f_dict['PFUNC'][1], 'b')
+# plt.show()
