@@ -48,6 +48,23 @@ for c in arr_li:
         vf = None
     f_dict[c] = vf
 
+# ps5 -graphs
+# fig, axs = plt.subplots(1, 2)
+# required_graph = ['VFUNC', 'PFUNC']
+# def_x = f_dict['AGRID']
+# colors = ['r', 'b', 'g', 'pink', 'c']
+# for i, item in enumerate(required_graph):
+#     g = f_dict[item]
+#     current_ax = axs[i]
+#     print(current_ax)
+#     current_ax.set_title(item)
+#     for di, dim in enumerate(g):
+#         current_ax.plot(def_x, f_dict[item][di], colors[di])
+# plt.show()
+plt.plot( f_dict['AGRID'],f_dict['PFUNC'][0], 'r')
+plt.plot( f_dict['AGRID'],f_dict['PFUNC'][1], 'b')
+plt.show()
+
 #PS4B - GRAPHS
 # required_graph = ['VFUNC', 'PFUNC',  'VFUND', 'PFUND']
 # fig, axs = plt.subplots(2, 2)
@@ -63,9 +80,9 @@ for c in arr_li:
 #     for di, dim in enumerate(g):
 #         current_ax.plot(def_x, f_dict[item][di], colors[di])
 # plt.show()
-plt.plot( f_dict['AGRID'],f_dict['CONSUM_EQ'][2], 'r')
-plt.plot( f_dict['AGRID'],f_dict['CONSUM_EQ'][3], 'b')
-plt.show()
+# plt.plot( f_dict['AGRID'],f_dict['CONSUM_EQ'][2], 'r')
+# plt.plot( f_dict['AGRID'],f_dict['CONSUM_EQ'][3], 'b')
+# plt.show()
 
 # ps2 - PLOT GRAPHS
 # df1 = [f_dict['AGRID'][int(i-1)] for i in f_dict['PFUNC'][0]]
