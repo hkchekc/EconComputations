@@ -61,8 +61,8 @@ for c in arr_li:
 #     for di, dim in enumerate(g):
 #         current_ax.plot(def_x, f_dict[item][di], colors[di])
 # plt.show()
-plt.plot( f_dict['AGRID'],f_dict['PFUNC'][0], 'r')
-plt.plot( f_dict['AGRID'],f_dict['PFUNC'][1], 'b')
+plt.plot( f_dict['AGRID'],f_dict['VFUNC'][0], 'r')
+plt.plot( f_dict['AGRID'],f_dict['VFUNC'][1], 'b')
 plt.show()
 
 #PS4B - GRAPHS
