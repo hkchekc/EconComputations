@@ -36,7 +36,8 @@ f_path = '/Users/chek_choi/Downloads/fortran/'   # It is also bin path
 # run_fortran(in_str)
 # get the arrays stored in specific text file
 #TODO: MAKE IT MORE GENERIC, SAVE IT TO A SPECIFIC FOLDER AND LOOP THROUGH ALL TXT FILE IN FOLDER
-arr_li = ['VFUNC', 'PFUNC', 'STATDIST', 'AGRID', 'LORENZ','LAMBDA', 'VFUND', 'PFUND', 'Q', 'CONSUM_EQ']
+arr_li = ['VFUNC', 'PFUNC', 'STATDIST', 'AGRID', 'LORENZ','LAMBDA',
+          'VFUND', 'PFUND', 'Q', 'CONSUM_EQ', 'CAPPATH', 'LABPATH', 'RPATH', 'WPATH']
 f_dict = dict()
 ps_spec_suffix = ""
 for c in arr_li:
@@ -47,6 +48,26 @@ for c in arr_li:
     except OSError:
         vf = None
     f_dict[c] = vf
+
+#PS6 - GRAPH
+time = np.linspace(0,30,30)
+age = np.linspace(0,66,66)
+plt.plot(age,f_dict['CONSUM_EQ'][0], 'b')
+plt.plot(age,f_dict['CONSUM_EQ'][1], 'r')
+plt.show()
+# required_graph = ['CAPPATH', 'LABPATH',  'RPATH', 'WPATH']
+# fig, axs = plt.subplots(2, 2)
+# order = [axs[0,0],axs[0,1],axs[1,0],axs[1,1]]
+# print(axs)
+# def_x = time
+# colors = ['r', 'b', 'g', 'pink', 'c']
+# for i, item in enumerate(required_graph):
+#     g = f_dict[item]
+#     current_ax = order[i]
+#     print(current_ax)
+#     current_ax.set_title(item)
+#     current_ax.plot(def_x, f_dict[item], colors[1])
+# plt.show()
 
 # ps5 -graphs
 # fig, axs = plt.subplots(1, 2)
@@ -61,9 +82,9 @@ for c in arr_li:
 #     for di, dim in enumerate(g):
 #         current_ax.plot(def_x, f_dict[item][di], colors[di])
 # plt.show()
-plt.plot( f_dict['AGRID'],f_dict['VFUNC'][0], 'r')
-plt.plot( f_dict['AGRID'],f_dict['VFUNC'][1], 'b')
-plt.show()
+# plt.plot( f_dict['AGRID'],f_dict['VFUNC'][0], 'r')
+# plt.plot( f_dict['AGRID'],f_dict['VFUNC'][1], 'b')
+# plt.show()
 
 #PS4B - GRAPHS
 # required_graph = ['VFUNC', 'PFUNC',  'VFUND', 'PFUND']
