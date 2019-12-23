@@ -3,23 +3,15 @@ module testpara
 END MODULE
 
 program test
-        use testpara
         implicit none
-        INTEGER, PARAMETER:: LEN = 10
-        real, dimension(LEN):: test_array
-        REAL, DIMENSION(:), ALLOCATABLE:: IMIT_ARRAY
-        real:: at = 20
-        integer:: i  ! looping idx
-        test_array = (/(1.0/2.0**i, i = 1, 10)/)
-        IMIT_ARRAY = TEST_ARRAY
-        PRINT*,"imit", IMIT_ARRAY
-        print*, "test", test_array
-        test_array(:)=0.
-        print*, "with brac", test_array
-        test_array = 0.
-        print*, "no brac", test_array
-        CALL DLLM(AT, 10.)
-        CALL CHANGE_PARA()
+        real:: testarr(4)
+        real:: anotherarr(4, 4)
+
+        testarr=(/1, 2, 3, 4/)
+        print*, reshape(testarr, (/4, 1/))
+        print*, shape(reshape(testarr, (/4, 1/)))
+        print*, matmul(anotherarr(1, :), reshape(testarr, (/4, 1/)))
+        print*,shape(matmul(anotherarr(1, :), reshape(testarr, (/4, 1/))))
 end program test
 
 subroutine dllm(t, Y)

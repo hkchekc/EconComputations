@@ -37,7 +37,7 @@ f_path = '/Users/chek_choi/Downloads/fortran/'   # It is also bin path
 # get the arrays stored in specific text file
 #TODO: MAKE IT MORE GENERIC, SAVE IT TO A SPECIFIC FOLDER AND LOOP THROUGH ALL TXT FILE IN FOLDER
 arr_li = ['VFUNC', 'PFUNC', 'STATDIST', 'AGRID', 'LORENZ','LAMBDA',
-          'VFUND', 'PFUND', 'Q', 'CONSUM_EQ', 'CAPPATH', 'LABPATH', 'RPATH', 'WPATH']
+          'VFUND', 'PFUND', 'Q', 'CONSUM_EQ', 'CAPPATH', 'LABPATH', 'RPATH', 'WPATH', 'DECISION', 'PRODUCTIVITY']
 f_dict = dict()
 ps_spec_suffix = ""
 for c in arr_li:
@@ -49,12 +49,18 @@ for c in arr_li:
         vf = None
     f_dict[c] = vf
 
-#PS6 - GRAPH
-time = np.linspace(0,30,30)
-age = np.linspace(0,66,66)
-plt.plot(age,f_dict['CONSUM_EQ'][0], 'b')
-plt.plot(age,f_dict['CONSUM_EQ'][1], 'r')
+#PS9
+plt.plot(f_dict['PRODUCTIVITY'],f_dict['DECISION'][0], 'b')
+plt.plot(f_dict['PRODUCTIVITY'],f_dict['DECISION'][1], 'r')
+plt.plot(f_dict['PRODUCTIVITY'],f_dict['DECISION'][2], 'g')
 plt.show()
+
+#PS6 - GRAPH
+# time = np.linspace(0,30,30)
+# age = np.linspace(0,66,66)
+# plt.plot(age,f_dict['CONSUM_EQ'][0], 'b')
+# plt.plot(age,f_dict['CONSUM_EQ'][1], 'r')
+# plt.show()
 # required_graph = ['CAPPATH', 'LABPATH',  'RPATH', 'WPATH']
 # fig, axs = plt.subplots(2, 2)
 # order = [axs[0,0],axs[0,1],axs[1,0],axs[1,1]]
