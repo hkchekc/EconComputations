@@ -1,5 +1,4 @@
 import numpy as np
-import scipy.integrate as intgr
 import scipy.optimize as opt
 import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
@@ -7,16 +6,15 @@ from mpl_toolkits import mplot3d
 
 class Ps10:
 
-    def __init__(self,t=200, sigmaz=2,rhoz=0.5,xz=0, h=10, l=(0,1)):
+    def __init__(self,t=200, sigmaz=2,rhoz=0.5,xz=0, h=10, l=(0,1,2)):
         self.t = t
         self.sigmaz = sigmaz
         self.rhoz = rhoz
         self.xz = xz
         self.randstate = np.random.get_state()
         self.h =h
-        ll = l[0]
-        lh = l[-1]-3
-        self.l = np.s_[ll:lh]
+        self.l_len=len(l)
+        self.l = np.s_[0:3]
         self.mx = None
         self.my = None
         self.true_data = None
@@ -37,7 +35,6 @@ class Ps10:
         if da is None:
             da = self.true_data
             td_bool = True
-        m_vec = []
         mean = np.mean(da)
         vari = np.var(da)
         if td_bool:
@@ -77,8 +74,29 @@ class Ps10:
         self.y(b)
         m_diff = self.mx - self.my
         j_val = np.matmul(m_diff, w)
-        j_val = np.matmul(j_val, m_diff.reshape(2, 1))
+        j_val = np.matmul(j_val, m_diff.reshape(self.l_len, 1))
         return j_val
+
+    def cal_shat(self, b):
+        self.y(b)
+        tmp_diff = self.true_data - self.mean
+        tmp_ac = np.append(0, tmp_diff[1:]*tmp_diff[:self.t-1])
+        tmp1_arr = np.vstack((tmp_diff.reshape(self.t), tmp_diff.reshape(self.t)**2, tmp_ac))[self.l]
+        gamma0 = np.matmul(tmp1_arr, np.transpose(tmp1_arr))
+        gamma_arr = []
+        for i in range(4):
+            gamma = np.zeros((self.l_len, self.l_len))
+            for tidx in range(i+1, self.t):
+                tmp1 = tmp1_arr[:,tidx]
+                tmp2 = tmp1_arr[:,tidx-i]
+                gamma += np.matmul(tmp1, np.transpose(tmp2))
+            gamma_arr.append(gamma)
+        gamma_arr = np.array(gamma_arr)
+        shat = np.zeros((self.l_len, self.l_len)) + gamma0
+        for j in range(4):
+            shat += (1 - j - 1 / (4 + 1)) * (gamma_arr[j] + np.transpose(gamma_arr[j]))
+        w2 = np.linalg.inv(shat)
+        return w2
 
     def ref_moments(self): # based on the calculation of question 1
         mean = 0
@@ -112,5 +130,19 @@ class Ps10:
         ax.set_ylabel('sigma')
         ax.set_zlabel('J value')
         plt.show()
+
+    def b_hat(self):
+        w = np.identity(self.l_len)
+        init_guess = (0.5, 1)
+        xfunc = lambda b: self.j(b, w)
+        b_hat = opt.fmin(xfunc, init_guess)
+        return b_hat
+
+    def b_hat_two(self, b_hat):
+        init_guess = b_hat
+        w2 = self.cal_shat(b_hat)
+        xfunc = lambda b: self.j(b, w2)
+        b_hat2 = opt.fmin(xfunc, init_guess)
+        return b_hat2
 
 
