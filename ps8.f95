@@ -58,14 +58,12 @@ PROGRAM PS8
     USE PS8PARA
     USE PS8RES
     IMPLICIT NONE
-    REAL(KIND=8):: ERROR_VFI
 
     CALL INIT_SHOCKS()
     DO WHILE (ERROR>CRIT .OR. MAXVAL(R_SQUARE)<0.8)
         CALL VFI()
         CALL PSEUDO_PANEL()
         CALL CAL_ERRORS()
-        PRINT*, ERROR
     ENDDO
 END PROGRAM
 
@@ -105,7 +103,6 @@ SUBROUTINE VFI()
         !$OMP END PARALLEL DO
 
         ERROR_VFI=100.
-        VFUNC_NEW = -1e12
         VFUNC_NEW = -1e12
         DO WHILE (ERROR_VFI> CRIT) ! VFI
             CALL BELLMAN()
@@ -157,11 +154,11 @@ SUBROUTINE INIT_SHOCKS()
     USE PS8PARA
     USE PS8RES
     IMPLICIT NONE
-    INTEGER:: TIDX, NIDX
-    REAL(KIND=8):: IND_PREV, Z_PREV, RAND_TMP
+    INTEGER:: TIDX, NIDX, Z_PREV
+    REAL(KIND=8):: RAND_TMP
     REAL(KIND=8), DIMENSION(NZ*NY):: TRANS_PROB
     INTEGER, PARAMETER:: RSEED=4200
-    INTEGER:: NEXT_STATE, OTHER_STATE, CUR_SHOCK, ROWIDX
+    INTEGER:: OTHER_STATE, CUR_SHOCK, ROWIDX, NEXT_STATE
 
     CALL SRAND(RSEED)
 
@@ -177,9 +174,9 @@ SUBROUTINE INIT_SHOCKS()
             IF (Z_PREV==1) THEN
                 OTHER_STATE = 2
             ENDIF
-            NEXT_STATE = PROD_SHOCK(OTHER_STATE)
+            NEXT_STATE = OTHER_STATE
         ENDIF
-
+        AGG_SHOCK_VEC(TIDX) = NEXT_STATE
     ENDDO
 
 
@@ -190,8 +187,12 @@ SUBROUTINE INIT_SHOCKS()
         DO NIDX=1,N
             CALL RANDOM_NUMBER(RAND_TMP)
             TRANS_PROB = RAND_TMP
-            ROWIDX = CUR_SHOCK + 2*(NIDX-1)
-            IND_SHOCK_VEC(NIDX, TIDX) = COUNT(TRANS_MAT(IND_SHOCK_VEC(ROWIDX, TIDX-1),:)<TRANS_PROB)+1.
+            ROWIDX = CUR_SHOCK + 2*(IND_SHOCK_VEC(NIDX, TIDX-1)-1)
+            IF (COUNT(TRANS_MAT(ROWIDX,:)<TRANS_PROB)>2) THEN
+                IND_SHOCK_VEC(NIDX, TIDX) = 2
+            ELSE
+                IND_SHOCK_VEC(NIDX, TIDX) = 1
+            ENDIF
         ENDDO
     ENDDO
 
@@ -206,8 +207,7 @@ SUBROUTINE PSEUDO_PANEL()
     USE OMP_LIB
     IMPLICIT NONE
     REAL(KIND=8):: INIT_K=5.7163
-    REAL(KIND=8), DIMENSION(T):: K_VEC ! DON'T OUTPUT
-    INTEGER:: TIDX, ZIDX, YIDX, NIDX, KIDX, KPIDX, AKIDX
+    INTEGER:: TIDX, ZIDX, YIDX, NIDX, AKIDX
     REAL(KIND=8), DIMENSION(NK, NY, NAK, NZ):: KDECISION
     INTEGER:: LAST_ASHOCK
     REAL(KIND=8), DIMENSION(1):: KPR, SMALL_KPR, SMALLK_TMP
@@ -218,8 +218,8 @@ SUBROUTINE PSEUDO_PANEL()
     SIM_AK(1) = INIT_K
     !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(TIIDX, LAST_SHOCK)
     DO TIDX=2, T
-        LAST_ASHOCK = AGG_SHOCK_VEC(T-1)
-        SIM_AK(T) = INTERCEPT(LAST_ASHOCK)+SLOPE(LAST_ASHOCK)*LOG(SIM_AK(T-1))
+        LAST_ASHOCK = AGG_SHOCK_VEC(TIDX-1)
+        SIM_AK(TIDX) = EXP(INTERCEPT(LAST_ASHOCK)+SLOPE(LAST_ASHOCK)*LOG(SIM_AK(TIDX-1)))
     ENDDO
     !$OMP END PARALLEL DO
 
@@ -254,18 +254,20 @@ SUBROUTINE CAL_ERRORS()
     REAL(KIND=8), DIMENSION(2)::INTERCEPT_NEW, SLOPE_NEW
     REAL(KIND=8), DIMENSION(:,:), ALLOCATABLE :: SIM_GOOD, SIM_BAD
     INTEGER:: NGOOD, NBAD, COUNT_GOOD, COUNT_BAD
-    INTEGER:: EIDX, TIDX, IDX
+    INTEGER:: TIDX, IDX
     REAL(KIND=8):: R1, R2, R3, MEAN, S_RES
 
     ! CALCUALTE NEW INTERCEPT AND SLOPE FOR FUNCTIONAL FORMS
     ! 1. SEPARTE INTO GOOD AND BAD STATE
-    NBAD = SUM(AGG_SHOCK_VEC_TRIM(:T-1001)-1)
-    NGOOD = T - DROP - NBAD
+    NBAD = SUM(AGG_SHOCK_VEC_TRIM(:T-1-DROP)-1)
+    NGOOD = SIZE(AGG_SHOCK_VEC_TRIM(:T-1-DROP)) - NBAD
     ALLOCATE(SIM_GOOD(NGOOD,2)) ! 1 IS X, 2 IS Y
     ALLOCATE(SIM_BAD(NBAD,2))
+    SIM_BAD=1.
+    SIM_GOOD=1.
     COUNT_GOOD=1
     COUNT_BAD=1
-    DO TIDX=DROP,T-1
+    DO TIDX=DROP+1,T-1
         IF (AGG_SHOCK_VEC(TIDX)==2) THEN ! IF BAD
             SIM_BAD(COUNT_BAD, 1) = SIM_AK(TIDX)
             SIM_BAD(COUNT_BAD,2) = SIM_AK(TIDX+1)
@@ -278,19 +280,21 @@ SUBROUTINE CAL_ERRORS()
     ENDDO
 
     ! 2. RUN OLS AND GET R SQUARE AND THE INTERCEPTS -GOOD
-    MEAN = SUM(LOG(SIM_GOOD(:,2)))/NGOOD
+    MEAN = SUM(LOG(SIM_GOOD(:,2)))/N
     R1 =SUM((LOG(SIM_GOOD(:,2))-MEAN)**2)
     R2 =SUM((LOG(SIM_GOOD(:,2))-MEAN)*(LOG(SIM_GOOD(:,1))-MEAN))
     R3 =SUM((LOG(SIM_GOOD(:,1))-MEAN)**2)
+    PRINT*, "RS", R1, R2, R3, MEAN
     SLOPE_NEW(1) = R2/R1
     INTERCEPT_NEW(1) = (SUM((LOG(SIM_GOOD(:,2)))) - SLOPE_NEW(1)*SUM((LOG(SIM_GOOD(:,1)))))/NGOOD
     S_RES = 0.
     DO IDX=1, NGOOD
         S_RES = S_RES+ SIM_GOOD(IDX,2) - INTERCEPT_NEW(1)-SLOPE_NEW(1)*SIM_GOOD(IDX,1)
     ENDDO
-    R_SQUARE(1) = 1- S_RES/R1 ! R_SQUARE
+    R_SQUARE(1) = 1- S_RES/R3 ! R_SQUARE
     ! SAME THING FOR BAD STATES
-    MEAN = SUM(LOG(SIM_BAD(:,2)))/NBAD
+    MEAN = SUM(LOG(SIM_BAD(:,2)))/N
+    PRINT*,"MEANB", MEAN, SUM(LOG(SIM_BAD(:,2)))
     R1 =SUM((LOG(SIM_BAD(:,2))-MEAN)**2)
     R2 =SUM((LOG(SIM_BAD(:,2))-MEAN)*(LOG(SIM_BAD(:,1))-MEAN))
     R3 =SUM((LOG(SIM_BAD(:,1))-MEAN)**2)
@@ -300,12 +304,15 @@ SUBROUTINE CAL_ERRORS()
     DO IDX=1, NBAD
         S_RES = S_RES+ SIM_BAD(IDX,2) - INTERCEPT_NEW(1)-SLOPE_NEW(1)*SIM_BAD(IDX,1)
     ENDDO
-    R_SQUARE(2) = 1- S_RES/R1 ! R_SQUARE
+    R_SQUARE(2) = 1- S_RES/R3 ! R_SQUARE
 
     ! CALCULATE ERROR
     ERROR_PARA(1:2) = SLOPE_NEW-SLOPE
     ERROR_PARA(3:4) = INTERCEPT_NEW-INTERCEPT
-    ERROR = MAXVAL(ERROR_PARA)
+    PRINT*,"RSQ", R_SQUARE
+    PRINT*,"ERROR_PARA", ERROR_PARA
+    PRINT*, "PARAS", INTERCEPT_NEW, SLOPE_NEW
+    ERROR = MAXVAL(ABS(ERROR_PARA))
     INTERCEPT=INTERCEPT_NEW
     SLOPE=SLOPE_NEW
 END SUBROUTINE
@@ -352,31 +359,31 @@ subroutine pwl_interp_2d ( nxd, nyd, xd, yd, zd, ni, xi, yi, zi )
 !
   implicit none
 
-  integer ( kind = 4 ) ni
-  integer ( kind = 4 ) nxd
-  integer ( kind = 4 ) nyd
+  integer ( kind = 4 ):: ni
+  integer ( kind = 4 ):: nxd
+  integer ( kind = 4 ):: nyd
 
-  real ( kind = 8 ) alpha
-  real ( kind = 8 ) beta
-  real ( kind = 8 ) det
-  real ( kind = 8 ) dxa
-  real ( kind = 8 ) dxb
-  real ( kind = 8 ) dxi
-  real ( kind = 8 ) dya
-  real ( kind = 8 ) dyb
-  real ( kind = 8 ) dyi
-  real ( kind = 8 ) gamma
-  integer ( kind = 4 ) i
-  integer ( kind = 4 ) j
-  integer ( kind = 4 ) k
-  real ( kind = 8 ) r8_huge
-  integer ( kind = 4 ) r8vec_bracket5
-  real ( kind = 8 ) xd(nxd)
-  real ( kind = 8 ) xi(ni)
-  real ( kind = 8 ) yd(nyd)
-  real ( kind = 8 ) yi(ni)
-  real ( kind = 8 ) zd(nxd,nyd)
-  real ( kind = 8 ) zi(ni)
+  real ( kind = 8 ):: alpha1
+  real ( kind = 8 ):: beta1
+  real ( kind = 8 ):: det
+  real ( kind = 8 ):: dxa
+  real ( kind = 8 ):: dxb
+  real ( kind = 8 ):: dxi
+  real ( kind = 8 ):: dya
+  real ( kind = 8 ):: dyb
+  real ( kind = 8 ):: dyi
+  real ( kind = 8 ):: gamma
+  integer ( kind = 4 ):: i1
+  integer ( kind = 4 ):: j
+  integer ( kind = 4 ):: k
+  real ( kind = 8 ):: r8_huge= 1.79769313486231571D+308
+  integer ( kind = 4 ):: r8vec_bracket5
+  real ( kind = 8 ):: xd(nxd)
+  real ( kind = 8 ):: xi(ni)
+  real ( kind = 8 ):: yd(nyd)
+  real ( kind = 8 ):: yi(ni)
+  real ( kind = 8 ):: zd(nxd,nyd)
+  real ( kind = 8 ):: zi(ni)
 
   do k = 1, ni
 !
@@ -388,15 +395,15 @@ subroutine pwl_interp_2d ( nxd, nyd, xd, yd, zd, ni, xi, yi, zi )
 !  But if the interpolation point is not within a data interval,
 !  assign the dummy interpolant value zi(k) = infinity.
 !
-    i = r8vec_bracket5 ( nxd, xd, xi(k) )
-    if ( i == -1 ) then
-      zi(k) = r8_huge ( )
+    i1 = r8vec_bracket5 ( nxd, xd, xi(k) )
+    if ( i1 == -1 ) then
+      zi(k) = r8_huge
       cycle
     end if
 
     j = r8vec_bracket5 ( nyd, yd, yi(k) )
     if ( j == -1 ) then
-      zi(k) = r8_huge ( )
+      zi(k) = r8_huge
       cycle
     end if
 !
@@ -414,47 +421,123 @@ subroutine pwl_interp_2d ( nxd, nyd, xd, yd, zd, ni, xi, yi, zi )
 !    (I,J)---(I+1,J)
 !
     if ( yi(k) < yd(j+1) &
-      + ( yd(j) - yd(j+1) ) * ( xi(k) - xd(i) ) / ( xd(i+1) - xd(i) ) ) then
+      + ( yd(j) - yd(j+1) ) * ( xi(k) - xd(i1) ) / ( xd(i1+1) - xd(i1) ) ) then
 
-      dxa = xd(i+1) - xd(i)
+      dxa = xd(i1+1) - xd(i1)
       dya = yd(j)   - yd(j)
 
-      dxb = xd(i)   - xd(i)
+      dxb = xd(i1)   - xd(i1)
       dyb = yd(j+1) - yd(j)
 
-      dxi = xi(k)   - xd(i)
+      dxi = xi(k)   - xd(i1)
       dyi = yi(k)   - yd(j)
 
       det = dxa * dyb - dya * dxb
 
-      alpha = ( dxi * dyb - dyi * dxb ) / det
-      beta =  ( dxa * dyi - dya * dxi ) / det
-      gamma = 1.0D+00 - alpha - beta
+      alpha1 = ( dxi * dyb - dyi * dxb ) / det
+      beta1 =  ( dxa * dyi - dya * dxi ) / det
+      gamma = 1.0D+00 - alpha1 - beta1
 
-      zi(k) = alpha * zd(i+1,j) + beta * zd(i,j+1) + gamma * zd(i,j)
+      zi(k) = alpha1 * zd(i1+1,j) + beta1 * zd(i1,j+1) + gamma * zd(i1,j)
 
     else
 
-      dxa = xd(i)   - xd(i+1)
+      dxa = xd(i1)   - xd(i1+1)
       dya = yd(j+1) - yd(j+1)
 
-      dxb = xd(i+1) - xd(i+1)
+      dxb = xd(i1+1) - xd(i1+1)
       dyb = yd(j)   - yd(j+1)
 
-      dxi = xi(k)   - xd(i+1)
+      dxi = xi(k)   - xd(i1+1)
       dyi = yi(k)   - yd(j+1)
 
       det = dxa * dyb - dya * dxb
 
-      alpha = ( dxi * dyb - dyi * dxb ) / det
-      beta =  ( dxa * dyi - dya * dxi ) / det
-      gamma = 1.0D+00 - alpha - beta
+      alpha1 = ( dxi * dyb - dyi * dxb ) / det
+      beta1 =  ( dxa * dyi - dya * dxi ) / det
+      gamma = 1.0D+00 - alpha1 - beta1
 
-      zi(k) = alpha * zd(i,j+1) + beta * zd(i+1,j) + gamma * zd(i+1,j+1)
+      zi(k) = alpha1 * zd(i1,j+1) + beta1 * zd(i1+1,j) + gamma * zd(i1+1,j+1)
 
     end if
-
   end do
+end subroutine
+
+function r8vec_bracket5 ( nd, xd, xi )
+
+!*****************************************************************************80
+!
+!! R8VEC_BRACKET5 brackets data between successive entries of a sorted R8VEC.
+!
+!  Discussion:
+!
+!    We assume XD is sorted.
+!
+!    If XI is contained in the interval [XD(1),XD(N)], then the returned
+!    value B indicates that XI is contained in [ XD(B), XD(B+1) ].
+!
+!    If XI is not contained in the interval [XD(1),XD(N)], then B = -1.
+!
+!    This code implements a version of binary search which is perhaps more
+!    understandable than the usual ones.
+!
+!  Licensing:
+!
+!    This code is distributed under the GNU LGPL license.
+!
+!  Modified:
+!
+!    14 October 2012
+!
+!  Author:
+!
+!    John Burkardt
+!
+!  Parameters:
+!
+!    Input, integer ( kind = 4 ) ND, the number of data values.
+!
+!    Input, real ( kind = 8 ) XD(N), the sorted data.
+!
+!    Input, real ( kind = 8 ) XD, the query value.
+!
+!    Output, integer ( kind = 4 ) R8VEC_BRACKET5, the bracket information.
+!
+  implicit none
+
+  integer ( kind = 4 ) nd
+
+  integer ( kind = 4 ) b
+  integer ( kind = 4 ) l
+  integer ( kind = 4 ) m
+  integer ( kind = 4 ) r
+  integer ( kind = 4 ) r8vec_bracket5
+  real ( kind = 8 ) xd(nd)
+  real ( kind = 8 ) xi
+
+  if ( xi < xd(1) .or. xd(nd) < xi ) then
+
+    b = -1
+
+  else
+
+    l = 1
+    r = nd
+
+    do while ( l + 1 < r )
+      m = ( l + r ) / 2
+      if ( xi < xd(m) ) then
+        r = m
+      else
+        l = m
+      end if
+    end do
+
+    b = l
+
+  end if
+
+  r8vec_bracket5 = b
 
   return
-end subroutine
+end
