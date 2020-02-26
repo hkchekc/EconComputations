@@ -1,9 +1,16 @@
 * # ignore all
 !*.f95 # except fortran
-!*.py # except fortran
+!*.py # except python
+!*.cpp # except c++
+!*.hpp # except c++ header
+# ignore binaries
+bin/
+*/bin/*
+# ignore all descriptions and write ups
 *.png
 *.lyx
 *.pdf
+# ignore py interpreter bytecode
 __pycache__/**
 .**
 
