@@ -77,7 +77,7 @@ class Ps10:
         j_val = np.matmul(j_val, m_diff.reshape(self.l_len, 1))
         return j_val
 
-    def cal_shat(self, b):
+    def cal_shat(self, b):  # asymptotic variance-covariance matrix
         self.y(b)
         tmp_diff = self.true_data - self.mean
         tmp_ac = np.append(0, tmp_diff[1:]*tmp_diff[:self.t-1])

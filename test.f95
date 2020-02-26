@@ -4,14 +4,17 @@ END MODULE
 
 program test
         implicit none
-        real:: testarr(4)
+        real, dimension(:), allocatable:: testarr
         real:: anotherarr(4, 4)
 
+        allocate(testarr(4))
         testarr=(/1, 2, 3, 4/)
-        print*, reshape(testarr, (/4, 1/))
-        print*, shape(reshape(testarr, (/4, 1/)))
-        print*, matmul(anotherarr(1, :), reshape(testarr, (/4, 1/)))
-        print*,shape(matmul(anotherarr(1, :), reshape(testarr, (/4, 1/))))
+        print*, testarr
+        allocate(testarr(3))
+        print*, testarr
+        allocate(testarr(4))
+        print*, testarr
+
 end program test
 
 subroutine dllm(t, Y)
